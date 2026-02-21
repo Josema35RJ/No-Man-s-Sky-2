@@ -1,6 +1,8 @@
 #pragma kernel GenerateTerrain
 
 RWStructuredBuffer<float3> vertices;
+// NUEVO: Buffer para enviar Temperatura (X) y Humedad (Y) al Shader Graph
+RWStructuredBuffer<float2> uvs; 
 
 uint vertexCount;
 float planetRadius;
@@ -9,10 +11,10 @@ int octaves;
 float persistence;
 float lacunarity;
 float heightMultiplier;
-float oceanLevel; // NUEVO: Nivel del mar
+float oceanLevel;
 float3 offset;
 
-// --- FUNCIÓN DE RUIDO 3D ---
+// --- FUNCIONES DE RUIDO ---
 float hash(float3 p) {
     p = frac(p * 0.3183099 + 0.1);
     p *= 17.0;
@@ -29,6 +31,21 @@ float noise3D(float3 x) {
                      lerp(hash(i + float3(0,1,1)), hash(i + float3(1,1,1)), f.x), f.y), f.z);
 }
 
+// Función auxiliar Fractal (fBM) para código más limpio
+float fbm(float3 pos, int oct, float pers, float lac) {
+    float total = 0.0;
+    float amplitude = 1.0;
+    float frequency = 1.0;
+    float maxValue = 0.0;
+    for(int i = 0; i < oct; i++) {
+        total += noise3D(pos * frequency) * amplitude;
+        maxValue += amplitude;
+        amplitude *= pers;
+        frequency *= lac;
+    }
+    return total / maxValue;
+}
+
 [numthreads(64, 1, 1)]
 void GenerateTerrain (uint3 id : SV_DispatchThreadID)
 {
@@ -38,39 +55,52 @@ void GenerateTerrain (uint3 id : SV_DispatchThreadID)
     float3 normal = normalize(pos);
     float3 samplePos = (pos + offset) / noiseScale;
 
-    // CAPA 1: Continentes (Formas grandes y suaves)
-    float continentShape = noise3D(samplePos) * 2.0 - 1.0;
+    // 1. DOMAIN WARPING (Distorsión de Dominio para realismo orgánico)
+    float warpX = noise3D(samplePos + float3(5.3, 2.9, 1.2)) * 2.0 - 1.0;
+    float warpY = noise3D(samplePos + float3(7.1, 9.4, 3.8)) * 2.0 - 1.0;
+    float warpZ = noise3D(samplePos + float3(1.8, 4.6, 8.3)) * 2.0 - 1.0;
+    float3 warpedPos = samplePos + float3(warpX, warpY, warpZ) * 1.5;
 
-    // CAPA 2: Máscara de Montañas (Decide dónde es llano y dónde rugoso)
-    // El offset diferente evita que coincida con los continentes
-    float mountainMask = smoothstep(-0.2, 0.5, noise3D(samplePos * 1.5 + float3(50, 50, 50)));
-
-    // CAPA 3: Detalles de Montañas (fBM con picos afilados)
+    // 2. FORMA DE CONTINENTES Y MONTAÑAS
+    float continentShape = fbm(warpedPos, octaves, persistence, lacunarity) * 2.0 - 1.0;
+    float mountainMask = smoothstep(0.1, 0.6, fbm(warpedPos * 1.5 + float3(50, 50, 50), 3, 0.5, 2.0));
+    
     float mountainDetails = 0.0;
-    float amplitude = 1.0;
-    float frequency = 2.0;
-    
+    float amp = 1.0;
+    float freq = 2.0;
     for (int i = 0; i < octaves; i++) {
-        float n = noise3D(samplePos * frequency) * 2.0 - 1.0; 
-        // Ridged noise: Hace que las montañas parezcan picos en lugar de bultos
-        n = 1.0 - abs(n); 
-        mountainDetails += n * amplitude;
-        amplitude *= persistence;
-        frequency *= lacunarity;
+        float n = noise3D(warpedPos * freq) * 2.0 - 1.0;
+        n = 1.0 - abs(n); // Montañas afiladas (Ridged noise)
+        mountainDetails += n * amp;
+        amp *= persistence;
+        freq *= lacunarity;
     }
 
-    // COMBINACIÓN FINAL
-    // Sumamos la forma base + los detalles de montaña (solo donde la máscara lo permite)
-    float finalNoise = continentShape + (mountainDetails * mountainMask);
-    
-    // Altura calculada
+    // 3. TERRAZAS (Efecto de mesetas geológicas)
+    float baseNoise = continentShape + (mountainDetails * mountainMask);
+    float numEscalones = 12.0;
+    float terracedNoise = round(baseNoise * numEscalones) / numEscalones;
+    float finalNoise = lerp(baseNoise, terracedNoise, 0.35); // Mezclamos para que no sea 100% plano
+
+    // 4. ELEVACIÓN FINAL Y OCÉANO
     float finalElevation = planetRadius + (finalNoise * heightMultiplier);
-    
-    // OCÉANO: Aplanar todo lo que esté por debajo del nivel del mar
     float oceanElevation = planetRadius + (oceanLevel * heightMultiplier);
-    if (finalElevation < oceanElevation) {
-        finalElevation = oceanElevation; // Crea una superficie lisa (mar/llanura)
-    }
 
+    if (finalElevation < oceanElevation) {
+        finalElevation = oceanElevation;
+    }
     vertices[id.x] = normal * finalElevation;
+
+    // 5. SISTEMA DE BIOMAS (Temperatura y Humedad)
+    float latitude = abs(normal.y); // 0 en ecuador, 1 en polos
+    
+    // Temperatura controlada por latitud + variación de ruido
+    float tempNoise = fbm(samplePos * 0.4 + float3(100, 100, 100), 3, 0.5, 2.0);
+    float temperature = lerp(1.0, 0.0, latitude) * 0.7 + tempNoise * 0.3;
+
+    // Humedad completamente aleatoria por regiones
+    float humidity = fbm(samplePos * 0.6 + float3(200, 200, 200), 4, 0.5, 2.0);
+
+    // Escribimos en UV (X = Temperatura, Y = Humedad). Saturate limita los valores de 0 a 1.
+    uvs[id.x] = float2(saturate(temperature), saturate(humidity));
 }

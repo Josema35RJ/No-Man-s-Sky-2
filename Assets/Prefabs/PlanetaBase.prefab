@@ -111,5 +111,9 @@ MonoBehaviour:
   persistence: 0.5
   lacunarity: 2
   heightMultiplier: 2
+  oceanLevel: 0
   seedOffset: {x: 0, y: 0, z: 0}
+  waterMaterial: {fileID: 2100000, guid: 0cb96b14b647e3b4cb188b4fff764240, type: 2}
+  atmosphereMaterial: {fileID: 2100000, guid: bffea4eaebc64e44cbc370c4b179871d, type: 2}
+  atmosphereScale: 1.2
   autoUpdate: 1

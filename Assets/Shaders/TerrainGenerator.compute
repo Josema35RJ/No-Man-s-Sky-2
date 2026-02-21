@@ -1,0 +1,76 @@
+#pragma kernel GenerateTerrain
+
+RWStructuredBuffer<float3> vertices;
+
+uint vertexCount;
+float planetRadius;
+float noiseScale;
+int octaves;
+float persistence;
+float lacunarity;
+float heightMultiplier;
+float oceanLevel; // NUEVO: Nivel del mar
+float3 offset;
+
+// --- FUNCIÓN DE RUIDO 3D ---
+float hash(float3 p) {
+    p = frac(p * 0.3183099 + 0.1);
+    p *= 17.0;
+    return frac(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+
+float noise3D(float3 x) {
+    float3 i = floor(x);
+    float3 f = frac(x);
+    f = f * f * (3.0 - 2.0 * f);
+    return lerp(lerp(lerp(hash(i + float3(0,0,0)), hash(i + float3(1,0,0)), f.x),
+                     lerp(hash(i + float3(0,1,0)), hash(i + float3(1,1,0)), f.x), f.y),
+                lerp(lerp(hash(i + float3(0,0,1)), hash(i + float3(1,0,1)), f.x),
+                     lerp(hash(i + float3(0,1,1)), hash(i + float3(1,1,1)), f.x), f.y), f.z);
+}
+
+[numthreads(64, 1, 1)]
+void GenerateTerrain (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= vertexCount) return;
+
+    float3 pos = vertices[id.x];
+    float3 normal = normalize(pos);
+    float3 samplePos = (pos + offset) / noiseScale;
+
+    // CAPA 1: Continentes (Formas grandes y suaves)
+    float continentShape = noise3D(samplePos) * 2.0 - 1.0;
+
+    // CAPA 2: Máscara de Montañas (Decide dónde es llano y dónde rugoso)
+    // El offset diferente evita que coincida con los continentes
+    float mountainMask = smoothstep(-0.2, 0.5, noise3D(samplePos * 1.5 + float3(50, 50, 50)));
+
+    // CAPA 3: Detalles de Montañas (fBM con picos afilados)
+    float mountainDetails = 0.0;
+    float amplitude = 1.0;
+    float frequency = 2.0;
+    
+    for (int i = 0; i < octaves; i++) {
+        float n = noise3D(samplePos * frequency) * 2.0 - 1.0; 
+        // Ridged noise: Hace que las montañas parezcan picos en lugar de bultos
+        n = 1.0 - abs(n); 
+        mountainDetails += n * amplitude;
+        amplitude *= persistence;
+        frequency *= lacunarity;
+    }
+
+    // COMBINACIÓN FINAL
+    // Sumamos la forma base + los detalles de montaña (solo donde la máscara lo permite)
+    float finalNoise = continentShape + (mountainDetails * mountainMask);
+    
+    // Altura calculada
+    float finalElevation = planetRadius + (finalNoise * heightMultiplier);
+    
+    // OCÉANO: Aplanar todo lo que esté por debajo del nivel del mar
+    float oceanElevation = planetRadius + (oceanLevel * heightMultiplier);
+    if (finalElevation < oceanElevation) {
+        finalElevation = oceanElevation; // Crea una superficie lisa (mar/llanura)
+    }
+
+    vertices[id.x] = normal * finalElevation;
+}

@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2716017775384616601}
   - component: {fileID: 7937933384750763316}
   - component: {fileID: 7821593530841627774}
+  - component: {fileID: 5999919386274726687}
   m_Layer: 0
   m_Name: PlanetaBase
   m_TagString: Untagged
@@ -67,7 +68,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f69552f8b32f5dd4182ccf973e045d8a, type: 2}
+  - {fileID: 2100000, guid: 518796e13541a8b4d86e0de56612776c, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -104,9 +105,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProceduralPlanet
   terrainComputeShader: {fileID: 7200000, guid: bbff3a5e76c876047876793b56891f2e, type: 3}
-  planetRadius: 10
+  planetRadius: 30
   resolution: 100
-  noiseScale: 5
+  noiseScale: 2
   octaves: 5
   persistence: 0.5
   lacunarity: 2
@@ -116,4 +117,27 @@ MonoBehaviour:
   waterMaterial: {fileID: 2100000, guid: 0cb96b14b647e3b4cb188b4fff764240, type: 2}
   atmosphereMaterial: {fileID: 2100000, guid: bffea4eaebc64e44cbc370c4b179871d, type: 2}
   atmosphereScale: 1.2
+  gravity: -10
   autoUpdate: 1
+--- !u!64 &5999919386274726687
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2622238497792507439}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 0}

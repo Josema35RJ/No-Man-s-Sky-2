@@ -1,18 +1,18 @@
 using UnityEngine;
 
-[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
+[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
 public class ProceduralPlanet : MonoBehaviour
 {
     public ComputeShader terrainComputeShader;
     
     [Header("Escala del Planeta")]
     public float planetRadius = 10f;
-    [Range(2, 256)] public int resolution = 100;
+    [Range(2, 256)] public int resolution = 150;
 
     [Header("Configuración de Terreno")]
     public float noiseScale = 5f;
     [Range(1, 8)] public int octaves = 5;
-    [Range(0f, 1f)] public float persistence = 0.5f;
+    [Range(0f, 1f)] public float persistence = 0.4f;
     public float lacunarity = 2f;
     public float heightMultiplier = 2f;
     [Range(-1f, 1f)] public float oceanLevel = 0f;
@@ -23,6 +23,9 @@ public class ProceduralPlanet : MonoBehaviour
     public Material atmosphereMaterial;
     [Range(1.05f, 1.5f)] public float atmosphereScale = 1.2f;
 
+    [Header("Gravedad")]
+    public float gravity = -12f; // <--- AQUÍ ESTÁ LA VARIABLE QUE FALTABA
+
     public bool autoUpdate = true;
 
     private Mesh mesh;
@@ -30,16 +33,20 @@ public class ProceduralPlanet : MonoBehaviour
     private Vector3[] displacedVertices;
     private Vector2[] uvs;
 
-    // Referencias a los objetos hijos
     private GameObject waterObject;
     private GameObject atmosphereObject;
-    private Mesh sharedBaseMesh; // Malla perfecta que usarán el agua y la atmósfera
+    private Mesh sharedBaseMesh; 
+    
+    private MeshCollider meshCollider;
 
     void Start()
     {
+        meshCollider = GetComponent<MeshCollider>();
         GenerateQuadSphere();
         GenerateTerrainGPU();
         UpdateExtraSpheres();
+        
+        meshCollider.sharedMesh = mesh;
     }
 
     void OnValidate()
@@ -48,6 +55,7 @@ public class ProceduralPlanet : MonoBehaviour
         {
             GenerateTerrainGPU();
             UpdateExtraSpheres();
+            if (meshCollider != null) meshCollider.sharedMesh = mesh;
         }
     }
 
@@ -96,24 +104,51 @@ public class ProceduralPlanet : MonoBehaviour
         mesh.RecalculateBounds();
     }
 
-    // Genera y actualiza el tamaño del Agua y la Atmósfera
+    public void EditTerrain(Vector3 point, bool addHeight, float radius = 2f, float strength = 0.5f)
+    {
+        int kernel = terrainComputeShader.FindKernel("EditTerrain");
+        
+        int vec3Size = sizeof(float) * 3;
+        ComputeBuffer vertexBuffer = new ComputeBuffer(displacedVertices.Length, vec3Size);
+        vertexBuffer.SetData(displacedVertices);
+        
+        terrainComputeShader.SetBuffer(kernel, "vertices", vertexBuffer);
+        
+        Vector3 localPoint = transform.InverseTransformPoint(point);
+        terrainComputeShader.SetFloats("brushPosition", new float[] { localPoint.x, localPoint.y, localPoint.z });
+        
+        terrainComputeShader.SetFloat("brushRadius", radius);
+        terrainComputeShader.SetFloat("brushStrength", addHeight ? strength : -strength);
+        terrainComputeShader.SetInt("vertexCount", displacedVertices.Length);
+
+        int threadGroups = Mathf.CeilToInt(displacedVertices.Length / 64f);
+        terrainComputeShader.Dispatch(kernel, threadGroups, 1, 1);
+
+        vertexBuffer.GetData(displacedVertices);
+        vertexBuffer.Release();
+
+        mesh.vertices = displacedVertices;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        
+        meshCollider.sharedMesh = null;
+        meshCollider.sharedMesh = mesh;
+    }
+
     private void UpdateExtraSpheres()
     {
         float waterRadius = planetRadius + (oceanLevel * heightMultiplier);
         float atmoRadius = planetRadius * atmosphereScale;
 
-        // Océano
         if (waterObject == null && waterMaterial != null) 
             waterObject = CreateChildSphere("Ocean", waterMaterial);
         
         if (waterObject != null)
         {
-            // Escalamos la esfera perfecta para que coincida exactamente con el nivel del mar
             float scaleW = waterRadius / planetRadius;
             waterObject.transform.localScale = new Vector3(scaleW, scaleW, scaleW);
         }
 
-        // Atmósfera
         if (atmosphereObject == null && atmosphereMaterial != null) 
             atmosphereObject = CreateChildSphere("Atmosphere", atmosphereMaterial);
         
@@ -133,12 +168,11 @@ public class ProceduralPlanet : MonoBehaviour
         MeshFilter mf = obj.AddComponent<MeshFilter>();
         MeshRenderer mr = obj.AddComponent<MeshRenderer>();
         
-        mf.sharedMesh = sharedBaseMesh; // Usamos la esfera sin deformar
+        mf.sharedMesh = sharedBaseMesh; 
         mr.sharedMaterial = mat;
 
-        // Quitar colisiones y sombras a la atmósfera/agua
         mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        mr.receiveShadows = objName == "Ocean"; // El agua sí puede recibir sombras
+        mr.receiveShadows = objName == "Ocean"; 
 
         return obj;
     }
@@ -146,7 +180,7 @@ public class ProceduralPlanet : MonoBehaviour
     private void GenerateQuadSphere()
     {
         GetComponent<MeshFilter>().mesh = mesh = new Mesh();
-        sharedBaseMesh = new Mesh(); // Guardamos una copia pura
+        sharedBaseMesh = new Mesh(); 
         
         mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
         sharedBaseMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
@@ -199,5 +233,21 @@ public class ProceduralPlanet : MonoBehaviour
         sharedBaseMesh.vertices = baseVertices;
         sharedBaseMesh.triangles = triangles;
         sharedBaseMesh.RecalculateNormals();
+    }
+
+    // --- FUNCIÓN DE GRAVEDAD ---
+    public void Attract(Transform body)
+    {
+        Vector3 gravityUp = (body.position - transform.position).normalized;
+        Vector3 bodyUp = body.up;
+
+        Rigidbody rb = body.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.AddForce(gravityUp * gravity); // Ahora sí reconoce "gravity"
+        }
+
+        Quaternion targetRotation = Quaternion.FromToRotation(bodyUp, gravityUp) * body.rotation;
+        body.rotation = Quaternion.Slerp(body.rotation, targetRotation, 50f * Time.deltaTime);
     }
 }

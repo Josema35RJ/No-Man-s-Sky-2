@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class GodManager : MonoBehaviour
 {
     public ProceduralPlanet planetPrefab;
+    public GameObject playerInstance;
     public int numberOfPlanets = 5;
     public float universeSize = 80f;
     public float minDistanceBetweenPlanets = 30f; // Distancia mínima de seguridad
@@ -11,6 +12,31 @@ public class GodManager : MonoBehaviour
     void Start()
     {
         CreateUniverse();
+    }
+
+    void update()
+    {
+        FindClosestPlanet();
+    }
+
+    void FindClosestPlanet()
+    {
+        float closestDist = Mathf.Infinity;
+        ProceduralPlanet closestPlanet = null;
+
+        // Podrías guardar la lista de planetas creados en CreateUniverse()
+        foreach (Transform child in transform)
+        {
+            float dist = Vector3.Distance(playerInstance.transform.position, child.position);
+            if (dist < closestDist)
+            {
+                closestDist = dist;
+                closestPlanet = child.GetComponent<ProceduralPlanet>();
+            }
+        }
+
+        if (closestPlanet != null)
+            playerInstance.GetComponent<SphericalGravity>().planet = closestPlanet.transform;
     }
 
     void CreateUniverse()

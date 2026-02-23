@@ -104,20 +104,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf262f7aea7be1241aad95ae40ee0fd9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProceduralPlanet
+  planetType: 0
   terrainComputeShader: {fileID: 7200000, guid: bbff3a5e76c876047876793b56891f2e, type: 3}
+  planetMaterial: {fileID: 2100000, guid: 518796e13541a8b4d86e0de56612776c, type: 2}
   planetRadius: 30
-  resolution: 100
-  noiseScale: 2
+  resolution: 64
+  noiseScale: 30
   octaves: 5
   persistence: 0.5
   lacunarity: 2
-  heightMultiplier: 2
-  oceanLevel: 0
+  heightMultiplier: 8
+  oceanLevel: 0.2
   seedOffset: {x: 0, y: 0, z: 0}
   waterMaterial: {fileID: 2100000, guid: 0cb96b14b647e3b4cb188b4fff764240, type: 2}
   atmosphereMaterial: {fileID: 2100000, guid: bffea4eaebc64e44cbc370c4b179871d, type: 2}
   atmosphereScale: 1.2
   gravity: -10
+  playerViewer: {fileID: 0}
+  maxLOD: 4
+  detailLevelDistances:
+  - 300
+  - 150
+  - 75
+  - 30
+  - 10
   autoUpdate: 1
 --- !u!64 &5999919386274726687
 MeshCollider:

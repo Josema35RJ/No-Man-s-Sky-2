@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Mat_Helado
+  m_Name: Mat_Gaseoso
   m_Shader: {fileID: -6465566751694194690, guid: 5648cb84d29f3f749ab23b67d4f1b06e, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -25,7 +25,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _MapadeBiomas:
-        m_Texture: {fileID: 2800000, guid: 06306950c5b5cef499cad9323135bc6a, type: 3}
+        m_Texture: {fileID: 2800000, guid: 4959c60d53f84a64d920d6222f1da7a9, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:

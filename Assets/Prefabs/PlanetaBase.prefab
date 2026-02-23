@@ -109,12 +109,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProceduralPlanet
   planetType: 0
   terrainComputeShader: {fileID: 7200000, guid: bbff3a5e76c876047876793b56891f2e, type: 3}
-  matTerrestre: {fileID: 0}
-  matHelado: {fileID: 0}
-  matDesierto: {fileID: 0}
-  matVolcanico: {fileID: 0}
-  matGaseoso: {fileID: 0}
-  planetMaterial: {fileID: 2100000, guid: 518796e13541a8b4d86e0de56612776c, type: 2}
+  matTerrestre: {fileID: 2100000, guid: 76d5598425941244a80daf9a7155a743, type: 2}
+  matHelado: {fileID: 2100000, guid: 00bf511f660d2e7449db8235245921db, type: 2}
+  matDesierto: {fileID: 2100000, guid: 518796e13541a8b4d86e0de56612776c, type: 2}
+  matVolcanico: {fileID: 2100000, guid: 255dc20c8879f244486aa7e04aa830ef, type: 2}
+  matGaseoso: {fileID: 2100000, guid: f7fd073ab90f236449cf2fffaefdca39, type: 2}
+  planetMaterial: {fileID: 2100000, guid: 76d5598425941244a80daf9a7155a743, type: 2}
   planetRadius: 1000
   resolution: 64
   noiseScale: 500

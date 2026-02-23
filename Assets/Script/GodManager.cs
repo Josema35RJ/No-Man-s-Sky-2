@@ -6,15 +6,18 @@ public class GodManager : MonoBehaviour
     public ProceduralPlanet planetPrefab;
     public GameObject playerInstance;
     public int numberOfPlanets = 5;
-    public float universeSize = 80f;
-    public float minDistanceBetweenPlanets = 30f; // Distancia mínima de seguridad
+    
+    [Header("Escalas Cósmicas")]
+    // Hacemos el universo inmenso y separamos los planetas muchísimo
+    public float universeSize = 100000f; 
+    public float minDistanceBetweenPlanets = 20000f; 
 
     void Start()
     {
         CreateUniverse();
     }
 
-    void update()
+    void Update()
     {
         FindClosestPlanet();
     }
@@ -24,7 +27,6 @@ public class GodManager : MonoBehaviour
         float closestDist = Mathf.Infinity;
         ProceduralPlanet closestPlanet = null;
 
-        // Podrías guardar la lista de planetas creados en CreateUniverse()
         foreach (Transform child in transform)
         {
             float dist = Vector3.Distance(playerInstance.transform.position, child.position);
@@ -35,8 +37,10 @@ public class GodManager : MonoBehaviour
             }
         }
 
-        if (closestPlanet != null)
+        if (closestPlanet != null && playerInstance.GetComponent<SphericalGravity>() != null)
+        {
             playerInstance.GetComponent<SphericalGravity>().planet = closestPlanet.transform;
+        }
     }
 
     void CreateUniverse()
@@ -49,7 +53,7 @@ public class GodManager : MonoBehaviour
             bool validPosition = false;
             int attempts = 0;
 
-            // Bucle para encontrar una posición vacía (evita que aparezcan uno dentro del otro)
+            // Bucle para encontrar una posición vacía en el inmenso espacio
             while (!validPosition && attempts < 100)
             {
                 randomPosition = Random.insideUnitSphere * universeSize;
@@ -59,7 +63,7 @@ public class GodManager : MonoBehaviour
                 {
                     if (Vector3.Distance(randomPosition, pos) < minDistanceBetweenPlanets)
                     {
-                        validPosition = false; // Están muy cerca, intenta otra vez
+                        validPosition = false; 
                         break;
                     }
                 }
@@ -68,33 +72,21 @@ public class GodManager : MonoBehaviour
 
             planetPositions.Add(randomPosition);
 
-            // Instanciamos el planeta y lo hacemos hijo del GodManager (this.transform)
+            // Instanciamos el planeta
             ProceduralPlanet newPlanet = Instantiate(planetPrefab, randomPosition, Quaternion.identity, this.transform);
             
-            newPlanet.seedOffset = new Vector3(Random.Range(-1000f, 1000f), Random.Range(-1000f, 1000f), Random.Range(-1000f, 1000f));
-            newPlanet.planetRadius = Random.Range(8f, 15f);
-            
-            float tipoPlaneta = Random.value; 
+            // 1. FUNDAMENTAL: Decirle al planeta quién es el jugador para que funcione el Quadtree (LOD)
+            newPlanet.playerViewer = playerInstance.transform;
 
-            if (tipoPlaneta < 0.3f) 
-            {
-                newPlanet.oceanLevel = Random.Range(0.2f, 0.6f); 
-                newPlanet.heightMultiplier = Random.Range(1f, 3f);
-                newPlanet.name = "Oceanico_" + i;
-            }
-            else if (tipoPlaneta < 0.6f) 
-            {
-                newPlanet.oceanLevel = Random.Range(-0.8f, -0.5f);
-                newPlanet.heightMultiplier = Random.Range(0.5f, 1.5f);
-                newPlanet.noiseScale = Random.Range(8f, 12f);
-                newPlanet.name = "Arido_" + i;
-            }
-            else 
-            {
-                newPlanet.oceanLevel = Random.Range(-0.1f, 0.1f);
-                newPlanet.heightMultiplier = Random.Range(2f, 4f);
-                newPlanet.name = "Terrestre_" + i;
-            }
+            // 2. Semilla única para que el terreno (montañas y continentes) sea 100% distinto
+            newPlanet.seedOffset = new Vector3(Random.Range(-5000f, 5000f), Random.Range(-5000f, 5000f), Random.Range(-5000f, 5000f));
+            
+            // 3. Elegimos el Arquetipo base (Terrestre, Helado, Volcanico, etc.)
+            newPlanet.planetType = (ProceduralPlanet.PlanetType)Random.Range(0, 5);
+            newPlanet.name = newPlanet.planetType.ToString() + "_" + i;
+            
+            // 4. (Opcional) Pequeña variación de radio extra sobre el arquetipo
+            newPlanet.planetRadius *= Random.Range(0.8f, 1.2f);
         }
     }
 }

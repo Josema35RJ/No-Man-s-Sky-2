@@ -69,6 +69,9 @@ MeshRenderer:
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 518796e13541a8b4d86e0de56612776c, type: 2}
+  - {fileID: 2100000, guid: 00bf511f660d2e7449db8235245921db, type: 2}
+  - {fileID: 2100000, guid: 76d5598425941244a80daf9a7155a743, type: 2}
+  - {fileID: 2100000, guid: 255dc20c8879f244486aa7e04aa830ef, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -106,16 +109,53 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProceduralPlanet
   planetType: 0
   terrainComputeShader: {fileID: 7200000, guid: bbff3a5e76c876047876793b56891f2e, type: 3}
+  matTerrestre: {fileID: 0}
+  matHelado: {fileID: 0}
+  matDesierto: {fileID: 0}
+  matVolcanico: {fileID: 0}
+  matGaseoso: {fileID: 0}
   planetMaterial: {fileID: 2100000, guid: 518796e13541a8b4d86e0de56612776c, type: 2}
-  planetRadius: 30
+  planetRadius: 1000
   resolution: 64
-  noiseScale: 30
+  noiseScale: 500
   octaves: 5
   persistence: 0.5
   lacunarity: 2
-  heightMultiplier: 8
-  oceanLevel: 0.2
+  heightMultiplier: 80
+  oceanLevel: 0.1
   seedOffset: {x: 0, y: 0, z: 0}
+  ecosistema:
+  - name: Arbol
+    prefab: {fileID: 5173170887786434692, guid: d4b0b4c99550170479d9e03a5c342cfc, type: 3}
+    spawnProbability: 0.657
+    useNoiseClumping: 1
+    noiseScale: 150
+    minScale: 1
+    maxScale: 8
+    sinkIntoGround: 0.5
+    alignToTerrainInfluence: 0.5
+    minTemperature: 0.636
+    maxTemperature: 1
+    minHumidity: 0.623
+    maxHumidity: 1
+    maxSlopeAngle: 0
+    minAltitude: 0
+  - name: Roca
+    prefab: {fileID: 6322247231731170682, guid: 1f55f8c68246dc3438b73700695ee09b, type: 3}
+    spawnProbability: 0.707
+    useNoiseClumping: 1
+    noiseScale: 150
+    minScale: 1
+    maxScale: 8
+    sinkIntoGround: 0.5
+    alignToTerrainInfluence: 0.5
+    minTemperature: 0
+    maxTemperature: 1
+    minHumidity: 0
+    maxHumidity: 1
+    maxSlopeAngle: 0
+    minAltitude: 0
+  maxPropsPerChunk: 50
   waterMaterial: {fileID: 2100000, guid: 0cb96b14b647e3b4cb188b4fff764240, type: 2}
   atmosphereMaterial: {fileID: 2100000, guid: bffea4eaebc64e44cbc370c4b179871d, type: 2}
   atmosphereScale: 1.2
@@ -123,11 +163,11 @@ MonoBehaviour:
   playerViewer: {fileID: 0}
   maxLOD: 4
   detailLevelDistances:
-  - 300
-  - 150
-  - 75
-  - 30
-  - 10
+  - 2000
+  - 1000
+  - 500
+  - 200
+  - 100
   autoUpdate: 1
 --- !u!64 &5999919386274726687
 MeshCollider:

@@ -1,5 +1,33 @@
 using UnityEngine;
 
+[System.Serializable]
+public class SpawnableObject
+{
+    public string name = "Nuevo Objeto";
+    public GameObject prefab;
+    
+    [Header("Distribución Orgánica (Bosques/Clumping)")]
+    [Range(0f, 1f)] public float spawnProbability = 0.5f; 
+    public bool useNoiseClumping = true; 
+    public float noiseScale = 150f; 
+
+    [Header("Escala y Posición")]
+    public float minScale = 0.8f;
+    public float maxScale = 1.5f;
+    public float sinkIntoGround = 0.5f; 
+    [Range(0f, 1f)] public float alignToTerrainInfluence = 0.5f; 
+
+    [Header("Reglas de Bioma (0=Frío/Seco, 1=Calor/Húmedo)")]
+    [Range(0f, 1f)] public float minTemperature = 0f;
+    [Range(0f, 1f)] public float maxTemperature = 1f;
+    [Range(0f, 1f)] public float minHumidity = 0f;
+    [Range(0f, 1f)] public float maxHumidity = 1f;
+
+    [Header("Reglas de Geografía")]
+    [Range(0f, 90f)] public float maxSlopeAngle = 30f; 
+    public float minAltitude = 1f; 
+}
+
 public class ProceduralPlanet : MonoBehaviour
 {
     public enum PlanetType { Terrestre, Helado, Desierto, Volcanico, Gaseoso }
@@ -8,20 +36,33 @@ public class ProceduralPlanet : MonoBehaviour
     public PlanetType planetType = PlanetType.Terrestre;
     
     public ComputeShader terrainComputeShader;
-    public Material planetMaterial; 
+
+    // NUEVO: Cada tipo de planeta tendrá su propio material y colores
+    [Header("Materiales por Arquetipo")]
+    public Material matTerrestre;
+    public Material matHelado;
+    public Material matDesierto;
+    public Material matVolcanico;
+    public Material matGaseoso;
+    
+    [HideInInspector] public Material planetMaterial; 
     
     [Header("Escala del Planeta (Tamaño Real)")]
-    public float planetRadius = 1000f; // ¡Planetas gigantes!
+    public float planetRadius = 1000f; 
     [Range(2, 64)] public int resolution = 40; 
 
     [Header("Configuración de Terreno")]
-    public float noiseScale = 400f; // Estira las montañas para que sean inmensas
+    public float noiseScale = 400f; 
     [Range(1, 8)] public int octaves = 5;
     [Range(0f, 1f)] public float persistence = 0.4f;
     public float lacunarity = 2f;
-    public float heightMultiplier = 60f; // Altura real de montañas
+    public float heightMultiplier = 60f; 
     [Range(-1f, 1f)] public float oceanLevel = 0f;
     public Vector3 seedOffset;
+
+    [Header("Ecosistema y Props")]
+    public SpawnableObject[] ecosistema; 
+    public int maxPropsPerChunk = 50; 
 
     [Header("Materiales Extra")]
     public Material waterMaterial;
@@ -33,8 +74,7 @@ public class ProceduralPlanet : MonoBehaviour
 
     [Header("Configuración LOD (Quadtree)")]
     public Transform playerViewer; 
-    public int maxLOD = 5; // Añadimos un nivel más de detalle por el tamaño
-    // Ahora las distancias son gigantescas para abarcar el nuevo tamaño
+    public int maxLOD = 5; 
     public float[] detailLevelDistances = new float[] { 2000f, 1000f, 400f, 100f, 30f, 10f }; 
 
     public bool autoUpdate = true;
@@ -67,40 +107,32 @@ public class ProceduralPlanet : MonoBehaviour
 
     private void ApplyArchetypeSettings()
     {
-        // AHORA LOS ARQUETIPOS TIENEN ESCALAS REALISTAS
         switch (planetType)
         {
             case PlanetType.Terrestre:
-                planetRadius = 1000f;
-                heightMultiplier = 80f;  // Montañas altas
-                oceanLevel = 0.1f; 
-                noiseScale = 500f;       // Continentes muy anchos
+                planetRadius = 1000f; heightMultiplier = 80f; oceanLevel = 0.1f; noiseScale = 500f; 
+                if (matTerrestre != null) planetMaterial = matTerrestre;
                 break;
             case PlanetType.Desierto:
-                planetRadius = 1000f;
-                heightMultiplier = 35f;  // Dunas más suaves
-                oceanLevel = -1f;        // Sin océanos
-                noiseScale = 700f;       // Llanuras desérticas interminables
+                planetRadius = 1000f; heightMultiplier = 35f; oceanLevel = -1f; noiseScale = 700f; 
+                if (matDesierto != null) planetMaterial = matDesierto;
                 break;
             case PlanetType.Helado:
-                planetRadius = 900f;
-                heightMultiplier = 50f;  
-                oceanLevel = -0.5f; 
-                noiseScale = 350f;       // Terreno más roto y agrietado
+                planetRadius = 900f; heightMultiplier = 50f; oceanLevel = -0.5f; noiseScale = 350f; 
+                if (matHelado != null) planetMaterial = matHelado;
                 break;
             case PlanetType.Volcanico:
-                planetRadius = 1100f;
-                heightMultiplier = 120f; // Picos altísimos y escarpados
-                oceanLevel = 0.05f;      // Lagos de lava (con el material adecuado)
-                noiseScale = 250f;       // Muy caótico
+                planetRadius = 1100f; heightMultiplier = 120f; oceanLevel = 0.05f; noiseScale = 250f; 
+                if (matVolcanico != null) planetMaterial = matVolcanico;
                 break;
             case PlanetType.Gaseoso:
-                planetRadius = 4000f;    // Colosal
-                heightMultiplier = 0f; 
-                oceanLevel = 1f; 
-                atmosphereScale = 1.02f;
+                planetRadius = 4000f; heightMultiplier = 0f; oceanLevel = 1f; atmosphereScale = 1.02f;
+                if (matGaseoso != null) planetMaterial = matGaseoso;
                 break;
         }
+        
+        // Salvavidas por si te olvidas de asignar un material en el Inspector
+        if (planetMaterial == null) planetMaterial = matTerrestre;
     }
 
     void InitializeQuadTree()
